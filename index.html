@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F4E9D0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1B1A2E" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>WHONO</title>
+<style>
+:root{
+  --bg:#F4E9D0; --bg2:#E6D5B0; --ink:#3A2618; --ink-soft:#7A5A40; --panel:#FFF7E6; --line:#2A1A10; --shadow:#2A1A10;
+  --red:#D9483B; --yellow:#F2B33D; --green:#3E8E5E; --blue:#2F6DB5; --wild:#1D1A1A;
+  --hi:#D9483B; --glow:none; --scan:rgba(60,30,10,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#1B1A2E; --bg2:#121122; --ink:#F4E9D0; --ink-soft:#B9AED0; --panel:#28264A; --line:#E9DCC0; --shadow:#000;
+    --hi:#F2B33D; --glow:0 0 6px rgba(255,214,140,.55); --scan:rgba(0,0,0,.28);
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg)}
+body{
+  font-family:ui-monospace,"Courier New",monospace;color:var(--ink);
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation;
+  text-shadow:var(--glow);overflow-x:hidden;
+}
+button{font:inherit;color:inherit;-webkit-touch-callout:none}
+#app{
+  position:relative;max-width:430px;margin:0 auto;height:100vh;height:100dvh;overflow:hidden;background:var(--bg);
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+@media (min-width:500px){
+  body{background:var(--bg2)}
+  #app{border-left:3px solid var(--line);border-right:3px solid var(--line)}
+}
+.crt{position:fixed;inset:0;pointer-events:none;z-index:200;
+  background:repeating-linear-gradient(to bottom,transparent 0 2px,var(--scan) 2px 3px)}
+@media (prefers-color-scheme: dark){
+  .crt{box-shadow:inset 0 0 80px rgba(0,0,0,.6)}
+}
+.hidden{display:none!important}
+.screen{height:100%;display:flex;flex-direction:column}
+
+/* ---------- 공통 버튼 ---------- */
+.btn{
+  min-height:48px;min-width:48px;padding:0 16px;font-weight:800;font-size:16px;letter-spacing:1px;
+  border:3px solid #1a1210;border-radius:6px;background:var(--yellow);color:#1a1210;text-shadow:none;
+  box-shadow:4px 4px 0 var(--shadow);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+  text-decoration:none;position:relative;overflow:hidden;
+}
+.btn:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--shadow)}
+.btn[disabled]{opacity:.35;pointer-events:none}
+.btn.red{background:var(--red);color:#FFF7E6}
+.btn.blue{background:var(--blue);color:#FFF7E6}
+.btn.green{background:var(--green);color:#FFF7E6}
+.btn.ghost{background:var(--panel);color:var(--ink);border-color:var(--line)}
+
+/* ---------- 시작 화면 ---------- */
+.start{overflow-y:auto;padding:24px 16px 32px;gap:18px;align-items:stretch}
+.logo{
+  margin:8px 0 0;text-align:center;font-weight:900;font-size:clamp(52px,17vw,76px);letter-spacing:4px;line-height:1;
+  color:var(--panel);-webkit-text-stroke:2px #1a1210;
+  text-shadow:3px 3px 0 var(--red),6px 6px 0 var(--yellow),9px 9px 0 var(--green),12px 12px 0 var(--blue);
+}
+.logo.small{font-size:34px;letter-spacing:2px;text-shadow:2px 2px 0 var(--red),4px 4px 0 var(--yellow),6px 6px 0 var(--blue)}
+.sub{text-align:center;margin:6px 0 0;font-size:13px;color:var(--ink-soft);animation:blink 1.2s steps(1) infinite}
+.group .label,.hiscore .label{font-size:13px;font-weight:800;color:var(--ink-soft);margin:0 0 8px;letter-spacing:2px}
+.seg{display:flex;gap:8px}
+.seg button{
+  flex:1;min-height:52px;border:3px solid var(--line);border-radius:6px;background:var(--panel);
+  font-weight:800;font-size:17px;box-shadow:3px 3px 0 var(--shadow);cursor:pointer;
+}
+.seg button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--shadow)}
+.seg button.on{background:var(--red);color:#FFF7E6;border-color:#1a1210;text-shadow:none}
+.btn.big{min-height:60px;font-size:22px;margin-top:4px}
+.hiscore{border:3px solid var(--line);border-radius:8px;padding:12px;background:var(--panel);box-shadow:4px 4px 0 var(--shadow)}
+table.rec{width:100%;border-collapse:collapse;font-size:14px;text-align:center}
+table.rec th,table.rec td{padding:6px 2px;border-bottom:2px dashed var(--ink-soft)}
+table.rec tr:last-child td{border-bottom:0}
+table.rec th{color:var(--ink-soft);font-size:12px}
+table.rec td small{display:block;font-size:11px;color:var(--ink-soft)}
+
+/* ---------- 게임 화면 ---------- */
+.topbar{display:flex;align-items:center;gap:8px;padding:6px 10px;min-height:52px}
+.topbar .btn{min-height:40px;min-width:48px;padding:0 10px;font-size:14px;box-shadow:3px 3px 0 var(--shadow)}
+.topbar .info{flex:1;font-size:13px;color:var(--ink-soft);font-weight:700}
+.topbar .mini{font-weight:900;font-size:20px;letter-spacing:2px;color:var(--panel);-webkit-text-stroke:1px #1a1210;
+  text-shadow:2px 2px 0 var(--red),4px 4px 0 var(--blue)}
+.bots{display:grid;gap:6px;padding:2px 10px 6px}
+.bot{
+  border:3px solid var(--line);border-radius:8px;background:var(--panel);padding:6px 4px;text-align:center;
+  box-shadow:3px 3px 0 var(--shadow);min-width:0;position:relative;
+}
+.bot .nm{font-weight:900;font-size:14px}
+.bot .row{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:4px;font-weight:900;font-size:18px}
+.bot.turn{border-color:var(--hi);animation:turnblink .8s steps(1) infinite}
+.bot .uno-badge{position:absolute;top:-8px;right:-4px;background:var(--red);color:#FFF7E6;font-size:11px;font-weight:900;
+  padding:1px 5px;border:2px solid #1a1210;border-radius:4px;text-shadow:none}
+.mini-back{width:22px;height:32px;border:2px solid #1a1210;border-radius:4px;
+  background:repeating-linear-gradient(45deg,var(--red) 0 4px,#A9372D 4px 8px)}
+
+.table{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;position:relative}
+.piles{display:flex;align-items:center;gap:22px}
+.piles .card{--cw:clamp(70px,21vw,92px)}
+.deckbtn{cursor:pointer}
+.deckbtn.can{animation:nudge 1s steps(2) infinite}
+.deck-count{position:absolute;bottom:-22px;left:0;right:0;text-align:center;font-size:12px;color:var(--ink-soft);font-weight:800}
+.discard{position:relative;border-radius:12px;padding:5px;border:4px dashed transparent}
+.tinfo{display:flex;align-items:center;gap:12px;font-weight:900;font-size:15px;margin-top:10px}
+.color-ind{display:inline-flex;align-items:center;gap:6px}
+.color-ind i{width:22px;height:22px;border:3px solid #1a1210;border-radius:50%;display:inline-block}
+.dir{font-size:26px;line-height:1}
+.status{min-height:22px;font-size:14px;font-weight:800;text-align:center;padding:0 12px}
+.toast{position:absolute;top:6px;left:50%;transform:translateX(-50%);background:var(--red);color:#FFF7E6;border:3px solid #1a1210;
+  padding:6px 12px;border-radius:6px;font-weight:900;font-size:15px;box-shadow:3px 3px 0 #1a1210;text-shadow:none;white-space:nowrap;
+  animation:pop .3s steps(3);z-index:5}
+
+.actions{display:flex;gap:10px;justify-content:center;align-items:center;min-height:60px;padding:0 10px}
+.actions .btn{flex:1;max-width:160px}
+.btn .tbar{position:absolute;left:0;bottom:0;height:5px;background:#1a1210;width:100%;animation:shrink 2s steps(10) forwards}
+.btn.uno.armed{animation:pulse .5s steps(2) infinite}
+
+.me{border-top:3px solid var(--line);background:var(--bg2);position:relative}
+.me.turn{border-top-color:var(--hi);box-shadow:inset 0 4px 0 var(--hi)}
+.me-label{display:flex;justify-content:space-between;padding:6px 14px 0;font-size:13px;font-weight:900}
+.hand-wrap{overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;touch-action:pan-x;
+  padding:16px 12px 12px;scrollbar-width:none}
+.hand-wrap::-webkit-scrollbar{display:none}
+.hand{display:flex;gap:6px;width:max-content;padding-right:12px;min-height:calc(clamp(56px,16vw,68px)*1.5)}
+.hand .card{--cw:clamp(56px,16vw,68px);scroll-snap-align:start;cursor:pointer}
+.hand .card.playable{transform:translateY(-10px)}
+.hand .card:active{transform:translateY(-6px) translate(2px,2px);box-shadow:2px 2px 0 #000}
+.hand .card.dim{opacity:.4;pointer-events:none;filter:saturate(.5)}
+.hand.locked .card{pointer-events:none}
+
+/* ---------- 카드 ---------- */
+.card{
+  --cw:64px;position:relative;width:var(--cw);height:calc(var(--cw)*1.5);flex:0 0 auto;padding:0;
+  border:3px solid #111;border-radius:8px;box-shadow:4px 4px 0 #000;display:flex;align-items:center;justify-content:center;
+  color:#FFF7E6;font-weight:900;text-shadow:none;background:var(--wild);
+}
+.card .oval{width:80%;height:62%;background:#FFF7E6;border:2px solid #111;border-radius:50%;transform:rotate(-24deg);
+  display:flex;align-items:center;justify-content:center}
+.card .sym{transform:rotate(24deg);font-size:calc(var(--cw)*.46);line-height:1;color:var(--cc);letter-spacing:-1px}
+.card .sym.s{font-size:calc(var(--cw)*.34)}
+.card .corner{position:absolute;top:2px;left:5px;font-size:calc(var(--cw)*.2);line-height:1.1}
+.card .corner.br{top:auto;left:auto;bottom:2px;right:5px;transform:rotate(180deg)}
+.c-red{background:var(--red);--cc:var(--red)}
+.c-yellow{background:var(--yellow);--cc:#B07612}
+.c-green{background:var(--green);--cc:var(--green)}
+.c-blue{background:var(--blue);--cc:var(--blue)}
+.c-wild{background:var(--wild);--cc:#FFF7E6}
+.c-wild .oval{background:conic-gradient(var(--red) 0 25%,var(--yellow) 0 50%,var(--green) 0 75%,var(--blue) 0)}
+.c-wild .sym{text-shadow:2px 2px 0 #111,-1px -1px 0 #111,1px -1px 0 #111,-1px 1px 0 #111}
+.card.back{background:repeating-linear-gradient(45deg,var(--red) 0 7px,#A9372D 7px 14px)}
+.card.back .oval{background:var(--yellow)}
+.card.back .sym{color:#1a1210}
+.card.from-me{animation:dropUp .36s steps(6)}
+.card.from-top{animation:dropDown .36s steps(6)}
+.card.new{animation:drawIn .3s steps(4)}
+
+/* ---------- 오버레이 ---------- */
+.overlay{position:fixed;inset:0;z-index:150;background:rgba(20,12,8,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.panel{background:var(--panel);border:3px solid var(--line);border-radius:10px;box-shadow:6px 6px 0 var(--shadow);padding:18px;width:100%;max-width:360px;text-align:center}
+.panel h3{margin:0 0 14px;font-size:18px}
+.colors{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.colors button{min-height:72px;border:3px solid #1a1210;border-radius:8px;box-shadow:4px 4px 0 #1a1210;color:#FFF7E6;font-weight:900;font-size:18px;text-shadow:none;cursor:pointer}
+.colors button:active{transform:translate(3px,3px);box-shadow:1px 1px 0 #1a1210}
+.winner{font-size:clamp(40px,13vw,58px);font-weight:900;margin:6px 0 4px;color:var(--yellow);-webkit-text-stroke:2px #1a1210;
+  text-shadow:3px 3px 0 var(--red),6px 6px 0 #1a1210;animation:blink .7s steps(1) infinite}
+.result-sub{color:var(--ink-soft);font-size:14px;margin-bottom:18px}
+.stack{display:flex;flex-direction:column;gap:12px}
+#rotate{display:none;position:fixed;inset:0;z-index:300;background:var(--bg);align-items:center;justify-content:center;
+  font-size:22px;font-weight:900;text-align:center;padding:20px}
+@media (orientation:landscape) and (max-height:500px){ #rotate{display:flex} }
+
+/* ---------- 시뮬레이션 ---------- */
+.sim{overflow-y:auto;padding:18px 12px 30px;gap:12px}
+.sim p{margin:0;font-size:13px;color:var(--ink-soft);text-align:center}
+.bar{height:16px;border:3px solid var(--line);border-radius:4px;background:var(--panel)}
+.bar div{height:100%;width:0;background:var(--green)}
+table.simt{width:100%;border-collapse:collapse;font-size:13px;background:var(--panel);border:3px solid var(--line)}
+table.simt th,table.simt td{padding:7px 4px;border-bottom:2px solid var(--bg2);text-align:center}
+table.simt td.tip{text-align:left;font-size:12px;color:var(--ink-soft);padding:2px 8px 8px}
+.ok{color:var(--green);font-weight:900}.warn{color:#B07612;font-weight:900}.bad{color:var(--red);font-weight:900}
+
+@keyframes blink{50%{opacity:.15}}
+@keyframes turnblink{50%{border-color:var(--line)}}
+@keyframes nudge{50%{transform:translateY(-4px)}}
+@keyframes pulse{50%{transform:scale(1.06)}}
+@keyframes pop{from{transform:translateX(-50%) scale(.4)}to{transform:translateX(-50%) scale(1)}}
+@keyframes shrink{to{width:0}}
+@keyframes dropUp{from{transform:translateY(160px) rotate(-30deg) scale(.6);opacity:.3}to{transform:none;opacity:1}}
+@keyframes dropDown{from{transform:translateY(-160px) rotate(30deg) scale(.6);opacity:.3}to{transform:none;opacity:1}}
+@keyframes drawIn{from{transform:translateY(-50px) scale(.7);opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- 시작 화면 -->
+  <section id="screen-start" class="screen start hidden">
+    <h1 class="logo">WHONO</h1>
+    <p class="sub">▸ PRESS START ◂</p>
+    <div class="group"><div class="label">봇 수</div>
+      <div class="seg" id="seg-bots"><button data-v="1">1명</button><button data-v="2">2명</button><button data-v="3">3명</button></div>
+    </div>
+    <div class="group"><div class="label">난이도</div>
+      <div class="seg" id="seg-level"><button data-v="easy">쉬움</button><button data-v="normal">보통</button><button data-v="hard">어려움</button></div>
+    </div>
+    <button id="btn-start" class="btn red big">게임 시작</button>
+    <div class="hiscore"><div class="label">HIGH SCORE · 승-패</div><table class="rec" id="records"></table></div>
+  </section>
+
+  <!-- 게임 화면 -->
+  <section id="screen-game" class="screen hidden">
+    <header class="topbar">
+      <button id="btn-exit" class="btn ghost" aria-label="나가기">◀ 나가기</button>
+      <span class="info" id="game-info"></span>
+      <span class="mini">WHONO</span>
+    </header>
+    <div id="bots" class="bots"></div>
+    <div class="table">
+      <div id="toast" class="toast hidden"></div>
+      <div class="piles">
+        <button id="deck" class="card back deckbtn" aria-label="카드 뽑기"><span class="oval"><span class="sym">W</span></span><span class="deck-count" id="deck-count"></span></button>
+        <div id="discard" class="discard"></div>
+      </div>
+      <div class="tinfo"><span class="color-ind" id="color-ind"></span><span class="dir" id="dir"></span></div>
+      <div class="status" id="status"></div>
+    </div>
+    <div class="actions">
+      <button id="btn-uno" class="btn red uno">우노!</button>
+      <button id="btn-catch" class="btn blue hidden">잡기!</button>
+      <button id="btn-pass" class="btn ghost hidden">넘기기</button>
+    </div>
+    <div class="me" id="me">
+      <div class="me-label"><span id="me-name">나</span><span id="me-count"></span></div>
+      <div class="hand-wrap" id="hand-wrap"><div id="hand" class="hand"></div></div>
+    </div>
+  </section>
+
+  <!-- 시뮬레이션 화면 -->
+  <section id="screen-sim" class="screen sim hidden">
+    <h2 class="logo small">WHONO SIM</h2>
+    <p id="sim-info"></p>
+    <div class="bar"><div id="sim-bar"></div></div>
+    <table class="simt" id="sim-table"></table>
+    <a class="btn ghost" href="./">게임으로 돌아가기</a>
+  </section>
+</div>
+
+<div id="modal-color" class="overlay hidden">
+  <div class="panel"><h3>색을 골라줘</h3>
+    <div class="colors">
+      <button data-c="red" style="background:var(--red)">빨강</button>
+      <button data-c="yellow" style="background:var(--yellow);color:#1a1210">노랑</button>
+      <button data-c="green" style="background:var(--green)">초록</button>
+      <button data-c="blue" style="background:var(--blue)">파랑</button>
+    </div>
+  </div>
+</div>
+<div id="modal-result" class="overlay hidden">
+  <div class="panel">
+    <div class="winner" id="winner-text"></div>
+    <div class="result-sub" id="winner-sub"></div>
+    <div class="stack">
+      <button id="btn-again" class="btn red">같은 설정으로 다시하기</button>
+      <button id="btn-settings" class="btn ghost">설정 다시 선택</button>
+    </div>
+  </div>
+</div>
+<div id="rotate">📱<br>세로로 돌려주세요</div>
+<div class="crt"></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   난이도 설정 — 밸런스 조정은 이 객체의 숫자만 바꾸면 된다.
+   base: 난이도 기본값 / byBots[n]: 봇 n명일 때 base를 덮어쓰는 보정값
+   scoreRate     점수 기반 선택 비율 (나머지는 낼 수 있는 카드 중 랜덤)
+   drawMistake   낼 수 있는데 뽑는 실수 확률 (봇 손패 2장 이하면 항상 0)
+   wildBestColor 와일드 색을 손패 최다색으로 고를 확률 (나머지는 랜덤)
+   attack        'ignore' 상황 무시 / 'save' 아꼈다가 적시에 / 'focus' 다음 플레이어가 적으면 집중
+   unoMiss       우노 선언 누락 확률
+   memory        상대가 드로우한 색(=없는 색) 기억
+   counting      버린 카드로 아직 안 나온 색을 세서 와일드 색 선택에 반영
+   gangUp        봇 2명 이상일 때 공격 카드를 사용자에게 몰아주고 봇끼리는 아낌
+   delay         반응 딜레이(ms)
+   ※ 모든 봇은 사용자 손패를 절대 보지 않는다(공개 정보만 사용).
+   ===================================================================== */
+const DIFFICULTY = {
+  easy: {
+    base:   { scoreRate: 0.60, drawMistake: 0.10, wildBestColor: 0.70, attack: 'ignore', unoMiss: 0.25, memory: false, delay: 1200 },
+    byBots: { 1: { drawMistake: 0.12 }, 2: { drawMistake: 0.14 }, 3: { drawMistake: 0.17 } }
+  },
+  normal: {
+    base:   { scoreRate: 0.90, drawMistake: 0, wildBestColor: 1, attack: 'save', unoMiss: 0.10, memory: false, delay: 1000 },
+    byBots: { 1: {}, 2: { scoreRate: 0.75, unoMiss: 0.15 }, 3: {} }
+  },
+  hard: {
+    base:   { scoreRate: 1, drawMistake: 0, wildBestColor: 1, attack: 'focus', unoMiss: 0, memory: true, counting: true, gangUp: true, delay: 800 },
+    byBots: { 1: {}, 2: {}, 3: { scoreRate: 0.95 } }
+  }
+};
+// 시뮬레이션 설정: 사용자 역할은 보통 봇 로직(base)으로 대신 처리
+const SIM = { games: 1000, userLevel: 'normal', userUnoMiss: 0.05, catchRate: 0.5, seed: 20261007 };
+// 목표 사용자 승률(%)
+const TARGET = {
+  easy:   { 1: [65, 70], 2: [50, 55], 3: [40, 45] },
+  normal: { 1: [50, 55], 2: [35, 40], 3: [28, 33] },
+  hard:   { 1: [35, 40], 2: [25, 30], 3: [18, 23] }
+};
+const MIN_USER_RATE = 15;
+const UNO_WINDOW_MS = 2000;
+const COLORS = ['red', 'yellow', 'green', 'blue'];
+const COLOR_KO = { red: '빨강', yellow: '노랑', green: '초록', blue: '파랑' };
+const LEVEL_KO = { easy: '쉬움', normal: '보통', hard: '어려움' };
+const LEVELS = ['easy', 'normal', 'hard'];
+
+/* =============================== 규칙 =============================== */
+let uid = 0;
+function mkCard(color, type, value = null) { return { id: ++uid, color, type, value }; }
+function makeDeck() {
+  const d = [];
+  for (const c of COLORS) {
+    d.push(mkCard(c, 'num', 0));
+    for (let n = 1; n <= 9; n++) { d.push(mkCard(c, 'num', n)); d.push(mkCard(c, 'num', n)); }
+    for (const t of ['skip', 'reverse', 'draw2']) { d.push(mkCard(c, t)); d.push(mkCard(c, t)); }
+  }
+  for (let i = 0; i < 4; i++) { d.push(mkCard('wild', 'wild')); d.push(mkCard('wild', 'wild4')); }
+  return d;
+}
+function shuffle(a, rng) {
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+function mulberry32(seed) {
+  return function () {
+    seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function getParams(level, numBots) {
+  const d = DIFFICULTY[level];
+  return Object.assign({}, d.base, (d.byBots && d.byBots[numBots]) || {});
+}
+function createGame(numBots, level, rng = Math.random) {
+  const players = [{ idx: 0, name: '나', isHuman: true, hand: [], declared: false }];
+  for (let i = 1; i <= numBots; i++) players.push({ idx: i, name: '봇' + i, isHuman: false, hand: [], declared: false });
+  const s = {
+    players, deck: shuffle(makeDeck(), rng), discard: [], color: null, currentIndex: 0, direction: 1,
+    level, numBots, rng, lacks: players.map(() => new Set()), winner: null, turns: 0, reshuffles: 0, lastPlay: null
+  };
+  for (let r = 0; r < 7; r++) for (const p of players) p.hand.push(s.deck.pop());
+  let first = s.deck.pop();
+  while (first.type !== 'num') { // 숫자 카드가 나올 때까지 다시 뽑기
+    s.deck.splice(Math.floor(rng() * s.deck.length), 0, first);
+    first = s.deck.pop();
+  }
+  s.discard.push(first);
+  s.color = first.color;
+  for (const p of players) p.params = p.isHuman ? null : getParams(level, numBots);
+  return s;
+}
+const topCard = s => s.discard[s.discard.length - 1];
+function canPlay(s, c) {
+  if (c.color === 'wild' || c.color === s.color) return true;
+  const t = topCard(s);
+  if (c.type === 'num') return t.type === 'num' && t.value === c.value;
+  return c.type === t.type;
+}
+function legalCards(s, pi) { return s.players[pi].hand.filter(c => canPlay(s, c)); }
+function nextIndex(s, steps = 1, from = s.currentIndex) {
+  const n = s.players.length;
+  return (((from + s.direction * steps) % n) + n) % n;
+}
+function reshuffle(s) {
+  if (s.discard.length <= 1) return false;
+  const t = s.discard.pop();
+  s.deck = shuffle(s.discard, s.rng);
+  s.discard = [t];
+  s.reshuffles++;
+  return true;
+}
+function drawCards(s, pi, n) {
+  const got = [];
+  for (let i = 0; i < n; i++) {
+    if (!s.deck.length && !reshuffle(s)) break;
+    got.push(s.deck.pop());
+  }
+  const p = s.players[pi];
+  p.hand.push(...got);
+  if (p.hand.length > 2) p.declared = false;
+  return got;
+}
+// 낼 카드가 없어서(또는 실수로) 뽑는 드로우. 공개 정보로 "그 색이 없다"를 기록
+function drawForTurn(s, pi) {
+  s.lacks[pi].add(s.color);
+  return drawCards(s, pi, 1)[0] || null;
+}
+function passTurn(s) { s.currentIndex = nextIndex(s, 1); s.turns++; }
+function playCard(s, pi, cardId, chosenColor) {
+  if (pi !== s.currentIndex || s.winner !== null) return null;
+  const p = s.players[pi];
+  const k = p.hand.findIndex(c => c.id === cardId);
+  if (k < 0 || !canPlay(s, p.hand[k])) return null;
+  const c = p.hand.splice(k, 1)[0];
+  s.discard.push(c);
+  s.color = c.color === 'wild' ? (chosenColor || 'red') : c.color;
+  s.lacks[pi].delete(s.color);
+  s.lastPlay = { pi, card: c };
+  s.turns++;
+  const res = { card: c, player: pi, skipped: null, drew: 0, reversed: false };
+  if (p.hand.length === 0) { s.winner = pi; return res; }
+  const n = s.players.length;
+  if (c.type === 'skip' || (c.type === 'reverse' && n === 2)) {
+    res.skipped = nextIndex(s, 1);
+    s.currentIndex = nextIndex(s, 2);
+  } else if (c.type === 'reverse') {
+    s.direction *= -1; res.reversed = true;
+    s.currentIndex = nextIndex(s, 1);
+  } else if (c.type === 'draw2' || c.type === 'wild4') {
+    res.skipped = nextIndex(s, 1);
+    res.drew = drawCards(s, res.skipped, c.type === 'draw2' ? 2 : 4).length;
+    s.currentIndex = nextIndex(s, 2);
+  } else {
+    s.currentIndex = nextIndex(s, 1);
+  }
+  return res;
+}
+
+/* =============================== 봇 =============================== */
+// 봇은 자기 손패 + 공개 정보(버린 카드, 손패 장수, 드로우 기록)만 사용한다.
+function countColors(hand) {
+  const m = { red: 0, yellow: 0, green: 0, blue: 0 };
+  for (const c of hand) if (c.color !== 'wild') m[c.color]++;
+  return m;
+}
+function pickMax(items, score, rng) {
+  let best = [], bs = -Infinity;
+  for (const it of items) {
+    const v = score(it);
+    if (v > bs + 1e-9) { bs = v; best = [it]; } else if (Math.abs(v - bs) < 1e-9) best.push(it);
+  }
+  return best[Math.floor(rng() * best.length)];
+}
+const isAttack = (s, c) => c.type === 'skip' || c.type === 'draw2' || c.type === 'wild4' || (c.type === 'reverse' && s.players.length === 2);
+
+function chooseColor(s, pi, P, card) {
+  const rng = s.rng;
+  const hand = s.players[pi].hand.filter(c => !card || c.id !== card.id);
+  if (rng() >= P.wildBestColor) return COLORS[Math.floor(rng() * 4)];
+  const cnt = countColors(hand);
+  // +4는 다음 플레이어를 건너뛰므로 그 다음 플레이어의 약점 색을 본다
+  const target = nextIndex(s, card && card.type === 'wild4' ? 2 : 1, pi);
+  const unseen = P.counting ? unseenColors(s, pi) : null;
+  return pickMax(COLORS, c => cnt[c] * 2
+    + (P.memory && s.lacks[target].has(c) ? 3 : 0)
+    + (P.gangUp && s.players.length > 2 && s.lacks[0].has(c) ? 3 : 0)
+    + (unseen ? -unseen[c] * 0.15 : 0), rng);
+}
+// 공개 정보(버린 더미 + 자기 손패)로 아직 안 보인 색별 장수 추정
+function unseenColors(s, pi) {
+  const m = { red: 25, yellow: 25, green: 25, blue: 25 };
+  for (const c of s.discard) if (c.color !== 'wild') m[c.color]--;
+  for (const c of s.players[pi].hand) if (c.color !== 'wild') m[c.color]--;
+  return m;
+}
+function scoreCard(s, pi, c, P) {
+  const hand = s.players[pi].hand;
+  const cnt = countColors(hand);
+  const nextCount = s.players[nextIndex(s, 1, pi)].hand.length;
+  let v;
+  if (c.type === 'num') v = 10 + cnt[c.color] * 2 + c.value * 0.3;
+  else if (c.color === 'wild') v = 0; // 와일드는 낼 카드가 없거나 마무리용
+  else v = 5 + cnt[c.color] * 2;
+  if (isAttack(s, c)) {
+    if (P.attack === 'save') {
+      if (nextCount <= 3) v = 25 + (c.color !== 'wild' ? cnt[c.color] : 0);
+      else v = c.color === 'wild' ? 0 : 1;
+    } else if (P.attack === 'focus') {
+      if (nextCount <= 2) v = 40 + (c.type === 'wild4' ? 4 : c.type === 'draw2' ? 2 : 0);
+      else if (nextCount <= 3) v = 25 + (c.color !== 'wild' ? cnt[c.color] : 0);
+      else v = c.color === 'wild' ? 0 : 1;
+    }
+  }
+  if (P.memory && c.color !== 'wild') {
+    const target = nextIndex(s, isAttack(s, c) ? 2 : 1, pi);
+    if (s.lacks[target].has(c.color)) v += 6;
+  }
+  // 집중 견제: 공격은 사용자에게 몰아주고 봇끼리는 아낀다
+  if (P.gangUp && s.players.length > 2 && isAttack(s, c)) {
+    const victim = s.players[nextIndex(s, 1, pi)];
+    if (victim.isHuman) v += victim.hand.length <= 4 ? 20 : 4;
+    else v = Math.min(v, c.color === 'wild' ? 0 : 0.5);
+  }
+  if (P.gangUp && s.players.length > 2 && c.color !== 'wild' && s.lacks[0].has(c.color)) v += 3;
+  return v;
+}
+function botPlay(bot, level, s = state) {
+  const P = bot.params || getParams(level, s.numBots);
+  const rng = s.rng;
+  const legal = legalCards(s, bot.idx);
+  if (!legal.length) return { type: 'draw' };
+  const mistake = bot.hand.length <= 2 ? 0 : P.drawMistake;
+  if (rng() < mistake) return { type: 'draw', mistake: true };
+  const c = rng() < P.scoreRate
+    ? pickMax(legal, x => scoreCard(s, bot.idx, x, P), rng)
+    : legal[Math.floor(rng() * legal.length)];
+  return { type: 'play', card: c, color: c.color === 'wild' ? chooseColor(s, bot.idx, P, c) : null };
+}
+
+/* =========================== 시뮬레이션 =========================== */
+function simulateGame(numBots, level, rng) {
+  const s = createGame(numBots, level, rng);
+  const userP = Object.assign({}, DIFFICULTY[SIM.userLevel].base, { unoMiss: SIM.userUnoMiss });
+  s.players[0].params = userP;
+  let guard = 0;
+  while (s.winner === null && guard++ < 5000) {
+    const pi = s.currentIndex, p = s.players[pi], P = p.params;
+    let act = botPlay(p, level, s);
+    if (act.type === 'draw') {
+      const d = drawForTurn(s, pi);
+      if (d && canPlay(s, d)) act = { type: 'play', card: d, color: d.color === 'wild' ? chooseColor(s, pi, P, d) : null };
+      else { passTurn(s); continue; }
+    }
+    playCard(s, pi, act.card.id, act.color);
+    if (s.winner === null && p.hand.length === 1 && rng() < P.unoMiss) {
+      if (p.isHuman || rng() < SIM.catchRate) drawCards(s, pi, 2);
+    }
+  }
+  return s.winner;
+}
+function analyzeCombo(level, n, rate) {
+  const [lo, hi] = TARGET[level][n];
+  const diff = rate < lo ? lo - rate : rate > hi ? rate - hi : 0;
+  let cls = 'ok', label = '목표 달성', tip = '';
+  if (rate < MIN_USER_RATE) { cls = 'bad'; label = '하한 미만'; }
+  else if (diff > 5) { cls = 'bad'; label = '경고'; }
+  else if (diff > 0) { cls = 'warn'; label = '주의'; }
+  if (diff > 0 || rate < MIN_USER_RATE) {
+    const P = getParams(level, n), key = `${level}.byBots[${n}]`;
+    if (rate < lo) { // 봇이 너무 강함 → 약하게
+      if (P.scoreRate > 0.5) tip = `${key}.scoreRate ${P.scoreRate.toFixed(2)} → ${(P.scoreRate - 0.1).toFixed(2)}로 낮추기`;
+      else tip = `${key}.drawMistake ${P.drawMistake.toFixed(2)} → ${(P.drawMistake + 0.05).toFixed(2)}로 올리기`;
+    } else { // 봇이 너무 약함 → 강하게
+      if (P.drawMistake > 0) tip = `${key}.drawMistake ${P.drawMistake.toFixed(2)} → ${Math.max(0, P.drawMistake - 0.05).toFixed(2)}로 낮추기`;
+      else if (P.scoreRate < 1) tip = `${key}.scoreRate ${P.scoreRate.toFixed(2)} → ${Math.min(1, P.scoreRate + 0.1).toFixed(2)}로 올리기`;
+      else if (P.unoMiss > 0) tip = `${key}.unoMiss ${P.unoMiss.toFixed(2)} → 0으로 낮추기`;
+      else tip = `${key}는 이미 최대치 — 목표 구간 재검토 필요`;
+    }
+  }
+  return { cls, label, tip, lo, hi };
+}
+
+/* ============================ 화면(UI) ============================ */
+let state = null;
+let settings = { bots: 1, level: 'easy' };
+const ui = { phase: 'idle', timer: null, unoTimer: null, catchTimer: null, catchFor: null, drawnId: null, pending: null, knownIds: new Set(), lastTopId: null, toastTimer: null };
+const STORE_KEY = 'whono_records', SET_KEY = 'whono_settings';
+const $ = id => document.getElementById(id);
+
+function loadJSON(k, def) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch (e) { return def; } }
+function saveJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 저장 불가 무시 */ } }
+function show(id) { for (const s of document.querySelectorAll('.screen')) s.classList.toggle('hidden', s.id !== id); }
+
+const SYM = { skip: '⊘', reverse: '⇄', draw2: '+2', wild: 'W', wild4: '+4' };
+function symOf(c) { return c.type === 'num' ? String(c.value) : SYM[c.type]; }
+function cardLabel(c) {
+  const name = c.type === 'num' ? c.value : { skip: '스킵', reverse: '리버스', draw2: '+2', wild: '와일드', wild4: '와일드+4' }[c.type];
+  return c.color === 'wild' ? name : `${COLOR_KO[c.color]} ${name}`;
+}
+function cardEl(c, tag = 'div') {
+  const el = document.createElement(tag);
+  el.className = `card c-${c.color}`;
+  el.dataset.id = c.id;
+  const s = symOf(c);
+  el.innerHTML = `<span class="corner">${s}</span><span class="oval"><span class="sym${s.length > 1 ? ' s' : ''}">${s}</span></span><span class="corner br">${s}</span>`;
+  el.setAttribute('aria-label', cardLabel(c));
+  return el;
+}
+const ORDER = { red: 0, yellow: 1, green: 2, blue: 3, wild: 4 };
+const TORDER = { num: 0, skip: 1, reverse: 2, draw2: 3, wild: 4, wild4: 5 };
+function sortHand(h) { return h.slice().sort((a, b) => ORDER[a.color] - ORDER[b.color] || TORDER[a.type] - TORDER[b.type] || (a.value || 0) - (b.value || 0)); }
+
+/* ----- 시작 화면 ----- */
+function renderStart() {
+  for (const b of $('seg-bots').children) b.classList.toggle('on', +b.dataset.v === settings.bots);
+  for (const b of $('seg-level').children) b.classList.toggle('on', b.dataset.v === settings.level);
+  const rec = loadJSON(STORE_KEY, {});
+  let h = '<tr><th></th><th>봇1</th><th>봇2</th><th>봇3</th></tr>';
+  for (const lv of LEVELS) {
+    h += `<tr><th>${LEVEL_KO[lv]}</th>`;
+    for (const n of [1, 2, 3]) {
+      const r = rec[`${lv}-${n}`] || { w: 0, l: 0 }, g = r.w + r.l;
+      h += `<td>${r.w}-${r.l}<small>${g ? Math.round(r.w / g * 100) + '%' : '---'}</small></td>`;
+    }
+    h += '</tr>';
+  }
+  $('records').innerHTML = h;
+}
+function saveResult(won) {
+  const rec = loadJSON(STORE_KEY, {}), k = `${settings.level}-${settings.bots}`;
+  rec[k] = rec[k] || { w: 0, l: 0 };
+  won ? rec[k].w++ : rec[k].l++;
+  saveJSON(STORE_KEY, rec);
+}
+
+/* ----- 게임 진행 ----- */
+function clearTimers() {
+  clearTimeout(ui.timer); clearTimeout(ui.unoTimer); clearTimeout(ui.catchTimer);
+  ui.timer = ui.unoTimer = ui.catchTimer = null;
+}
+function startGame() {
+  clearTimers();
+  saveJSON(SET_KEY, settings);
+  state = createGame(settings.bots, settings.level);
+  Object.assign(ui, { phase: 'idle', catchFor: null, drawnId: null, pending: null, lastTopId: topCard(state).id });
+  ui.knownIds = new Set(state.players[0].hand.map(c => c.id));
+  $('modal-result').classList.add('hidden');
+  $('discard').innerHTML = '';
+  $('game-info').textContent = `${LEVEL_KO[settings.level]} · 봇 ${settings.bots}명`;
+  show('screen-game');
+  $('hand-wrap').scrollLeft = 0;
+  schedule();
+}
+const myTurn = () => state && state.winner === null && state.currentIndex === 0;
+function setStatus(t) { $('status').textContent = t; }
+function toast(t) {
+  const el = $('toast');
+  el.textContent = t; el.classList.remove('hidden');
+  el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+  clearTimeout(ui.toastTimer);
+  ui.toastTimer = setTimeout(() => el.classList.add('hidden'), 1400);
+}
+function schedule() {
+  clearTimeout(ui.timer);
+  if (state.winner !== null) return endGame();
+  const p = state.players[state.currentIndex];
+  if (p.isHuman) {
+    ui.phase = 'play'; ui.drawnId = null;
+    setStatus(legalCards(state, 0).length ? '나의 차례! 카드를 내줘' : '낼 카드가 없어요 · 덱을 눌러 1장 뽑기');
+    render(); return;
+  }
+  ui.phase = 'bot';
+  setStatus(`${p.name} 생각 중...`);
+  render();
+  ui.timer = setTimeout(() => botTurnUI(p), p.params.delay);
+}
+function botTurnUI(p) {
+  const act = botPlay(p, state.level);
+  if (act.type === 'draw') {
+    const d = drawForTurn(state, p.idx);
+    setStatus(`${p.name}: 1장 뽑음`);
+    render();
+    if (d && canPlay(state, d)) {
+      ui.timer = setTimeout(() => doPlay(p.idx, d, d.color === 'wild' ? chooseColor(state, p.idx, p.params, d) : null), Math.round(p.params.delay * 0.6));
+    } else {
+      passTurn(state);
+      ui.timer = setTimeout(schedule, 500);
+    }
+    return;
+  }
+  doPlay(p.idx, act.card, act.color);
+}
+function describe(res) {
+  const p = state.players[res.player], c = res.card;
+  let m = `${p.name}: ${cardLabel(c)}`;
+  if (c.color === 'wild') m += ` → ${COLOR_KO[state.color]}`;
+  if (res.skipped !== null) {
+    const v = state.players[res.skipped];
+    m += res.drew ? ` · ${v.name} ${res.drew}장 먹고 건너뜀` : ` · ${v.name} 건너뜀`;
+  } else if (res.reversed) m += ' · 방향 반대로!';
+  return m;
+}
+function doPlay(pi, card, color) {
+  const p = state.players[pi];
+  const res = playCard(state, pi, card.id, color);
+  if (!res) return;
+  ui.phase = 'anim'; ui.drawnId = null;
+  setStatus(describe(res));
+  render();
+  if (state.winner !== null) { ui.timer = setTimeout(endGame, 800); return; }
+  if (p.hand.length === 1) {
+    if (p.isHuman) {
+      if (!p.declared) return openUnoGrace();
+      toast('나: 우노!');
+    } else if (state.rng() < p.params.unoMiss) {
+      return openCatch(pi);
+    } else {
+      p.declared = true;
+      toast(`${p.name}: 우노!`);
+    }
+  }
+  ui.timer = setTimeout(schedule, 550);
+}
+// 사용자가 1장 남기고 선언 안 함 → 2초 안에 "우노!" 안 누르면 2장 페널티
+function openUnoGrace() {
+  ui.phase = 'unoGrace';
+  setStatus('1장 남았다! 2초 안에 "우노!"를 눌러');
+  render();
+  ui.unoTimer = setTimeout(() => {
+    if (state.players[0].declared) return;
+    drawCards(state, 0, 2);
+    toast('우노 미선언! 2장 페널티');
+    ui.phase = 'anim'; render();
+    ui.timer = setTimeout(schedule, 700);
+  }, UNO_WINDOW_MS);
+}
+// 봇이 선언 누락 → 2초 동안 "잡기" 기회
+function openCatch(pi) {
+  ui.catchFor = pi; ui.phase = 'catch';
+  setStatus(`${state.players[pi].name} 1장 남음...`);
+  render();
+  ui.catchTimer = setTimeout(() => {
+    ui.catchFor = null;
+    state.players[pi].declared = true;
+    render();
+    schedule();
+  }, UNO_WINDOW_MS);
+}
+function onCatch() {
+  if (ui.catchFor === null) return;
+  clearTimeout(ui.catchTimer);
+  const p = state.players[ui.catchFor];
+  drawCards(state, p.idx, 2);
+  toast(`잡았다! ${p.name} 2장 페널티`);
+  ui.catchFor = null; ui.phase = 'anim';
+  render();
+  ui.timer = setTimeout(schedule, 700);
+}
+function onUno() {
+  const me = state.players[0];
+  if (ui.phase === 'unoGrace') {
+    clearTimeout(ui.unoTimer);
+    me.declared = true; toast('나: 우노!');
+    ui.phase = 'anim'; render();
+    ui.timer = setTimeout(schedule, 500);
+  } else if (myTurn() && me.hand.length === 2 && !me.declared) {
+    me.declared = true; toast('우노 선언 완료!'); render();
+  }
+}
+function onCardTap(id) {
+  if (!myTurn() || (ui.phase !== 'play' && ui.phase !== 'drawn')) return;
+  if (ui.phase === 'drawn' && id !== ui.drawnId) return;
+  const c = state.players[0].hand.find(x => x.id === id);
+  if (!c || !canPlay(state, c)) return;
+  if (c.color === 'wild') { ui.pending = c; $('modal-color').classList.remove('hidden'); return; }
+  doPlay(0, c, null);
+}
+function onColorPick(color) {
+  $('modal-color').classList.add('hidden');
+  const c = ui.pending; ui.pending = null;
+  if (c && myTurn()) doPlay(0, c, color);
+}
+function onDeck() {
+  if (!myTurn() || ui.phase !== 'play') return;
+  const d = drawForTurn(state, 0);
+  if (d && canPlay(state, d)) {
+    ui.phase = 'drawn'; ui.drawnId = d.id;
+    setStatus('뽑은 카드를 낼 수 있어요 · 내거나 넘기기');
+    render();
+    const el = $('hand').querySelector(`[data-id="${d.id}"]`);
+    if (el) el.scrollIntoView({ inline: 'center', block: 'nearest' });
+  } else {
+    passTurn(state);
+    ui.phase = 'anim';
+    setStatus(d ? '낼 수 없는 카드 · 차례 넘김' : '덱이 비었어요 · 차례 넘김');
+    render();
+    ui.timer = setTimeout(schedule, 700);
+  }
+}
+function onPass() {
+  if (!myTurn() || ui.phase !== 'drawn') return;
+  passTurn(state); ui.phase = 'anim'; render();
+  ui.timer = setTimeout(schedule, 300);
+}
+function endGame() {
+  clearTimers();
+  ui.phase = 'over';
+  const w = state.players[state.winner];
+  saveResult(w.isHuman);
+  $('winner-text').textContent = w.isHuman ? 'YOU WIN!' : `${w.name} WIN`;
+  $('winner-sub').textContent = w.isHuman ? 'GAME CLEAR ★ 축하해!' : 'GAME OVER · 다시 도전?';
+  render();
+  $('modal-result').classList.remove('hidden');
+}
+
+/* ----- 렌더링 ----- */
+function render() {
+  if (!state) return;
+  const s = state, me = s.players[0];
+  // 봇
+  const bots = $('bots');
+  bots.style.gridTemplateColumns = `repeat(${s.numBots},1fr)`;
+  bots.innerHTML = '';
+  for (const p of s.players.slice(1)) {
+    const d = document.createElement('div');
+    d.className = 'bot' + (s.currentIndex === p.idx && s.winner === null ? ' turn' : '');
+    d.innerHTML = `<div class="nm">${p.name}</div><div class="row"><span class="mini-back"></span>×${p.hand.length}</div>` +
+      (p.hand.length === 1 ? '<span class="uno-badge">1장!</span>' : '');
+    bots.appendChild(d);
+  }
+  // 덱 / 버린 더미
+  $('deck-count').textContent = `덱 ${s.deck.length}`;
+  $('deck').classList.toggle('can', myTurn() && ui.phase === 'play' && legalCards(s, 0).length === 0);
+  const t = topCard(s), disc = $('discard');
+  if (ui.lastTopId !== t.id || !disc.firstChild) {
+    disc.innerHTML = '';
+    const el = cardEl(t);
+    if (ui.lastTopId !== t.id && s.lastPlay && s.lastPlay.card.id === t.id) el.classList.add(s.lastPlay.pi === 0 ? 'from-me' : 'from-top');
+    disc.appendChild(el);
+    ui.lastTopId = t.id;
+  }
+  disc.style.borderColor = `var(--${s.color})`;
+  $('color-ind').innerHTML = `<i style="background:var(--${s.color})"></i>${COLOR_KO[s.color]}`;
+  $('dir').textContent = s.direction === 1 ? '↻' : '↺';
+  $('dir').title = s.direction === 1 ? '정방향' : '역방향';
+  // 내 손패
+  const hand = $('hand');
+  hand.innerHTML = '';
+  const canAct = myTurn() && (ui.phase === 'play' || ui.phase === 'drawn');
+  hand.classList.toggle('locked', !canAct);
+  for (const c of sortHand(me.hand)) {
+    const el = cardEl(c, 'button');
+    if (canAct) {
+      const ok = canPlay(s, c) && (ui.phase === 'play' || c.id === ui.drawnId);
+      el.classList.add(ok ? 'playable' : 'dim');
+      if (!ok) el.disabled = true;
+    }
+    if (!ui.knownIds.has(c.id)) { el.classList.add('new'); ui.knownIds.add(c.id); }
+    el.addEventListener('click', () => onCardTap(c.id));
+    hand.appendChild(el);
+  }
+  $('me').classList.toggle('turn', myTurn());
+  $('me-count').textContent = `${me.hand.length}장${me.declared && me.hand.length <= 2 ? ' · 우노 선언' : ''}`;
+  // 버튼
+  const uno = $('btn-uno');
+  const unoOk = ui.phase === 'unoGrace' || (myTurn() && ui.phase === 'play' && me.hand.length === 2 && !me.declared);
+  uno.disabled = !unoOk;
+  uno.classList.toggle('armed', ui.phase === 'unoGrace');
+  uno.innerHTML = ui.phase === 'unoGrace' ? '우노!<span class="tbar"></span>' : '우노!';
+  const ct = $('btn-catch');
+  ct.classList.toggle('hidden', ui.catchFor === null);
+  if (ui.catchFor !== null && !ct.dataset.for) {
+    ct.dataset.for = ui.catchFor;
+    ct.innerHTML = `잡기! ${s.players[ui.catchFor].name}<span class="tbar"></span>`;
+  }
+  if (ui.catchFor === null) delete ct.dataset.for;
+  $('btn-pass').classList.toggle('hidden', ui.phase !== 'drawn');
+}
+
+/* ----- 시뮬레이션 화면 ----- */
+function runSimUI() {
+  const combos = [];
+  for (const lv of LEVELS) for (const n of [1, 2, 3]) combos.push({ lv, n, w: 0, g: 0, stuck: 0, rng: null });
+  const total = combos.length * SIM.games;
+  let ci = 0, done = 0;
+  $('sim-info').textContent = `조합당 ${SIM.games}판 · 사용자 = 보통 봇 로직 · 잡기 성공률 ${SIM.catchRate * 100}%`;
+  const chunk = () => {
+    const t0 = performance.now();
+    while (ci < combos.length && performance.now() - t0 < 25) {
+      const c = combos[ci];
+      if (!c.rng) c.rng = mulberry32(SIM.seed + ci * 7919);
+      const w = simulateGame(c.n, c.lv, c.rng);
+      c.g++; done++;
+      if (w === 0) c.w++; else if (w === null) c.stuck++;
+      if (c.g >= SIM.games) ci++;
+    }
+    $('sim-bar').style.width = (done / total * 100) + '%';
+    renderSimTable(combos);
+    if (ci < combos.length) setTimeout(chunk, 0);
+    else $('sim-info').textContent += ' · 완료';
+  };
+  chunk();
+}
+function renderSimTable(combos) {
+  let h = '<tr><th>조합</th><th>승률</th><th>목표</th><th>판정</th></tr>';
+  for (const c of combos) {
+    if (!c.g) { h += `<tr><td>${LEVEL_KO[c.lv]}·봇${c.n}</td><td>-</td><td>${TARGET[c.lv][c.n].join('~')}%</td><td>대기</td></tr>`; continue; }
+    const rate = c.w / c.g * 100, a = analyzeCombo(c.lv, c.n, rate), fin = c.g >= SIM.games;
+    h += `<tr><td>${LEVEL_KO[c.lv]}·봇${c.n}</td><td><b>${rate.toFixed(1)}%</b>${fin ? '' : `<br><small>${c.g}판</small>`}</td><td>${a.lo}~${a.hi}%</td><td class="${fin ? a.cls : ''}">${fin ? a.label : '진행 중'}</td></tr>`;
+    if (fin && a.tip) h += `<tr><td class="tip" colspan="4">↳ ${a.tip}</td></tr>`;
+  }
+  $('sim-table').innerHTML = h;
+}
+
+/* ----- 시작 ----- */
+function bindUI() {
+  $('seg-bots').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; settings.bots = +b.dataset.v; renderStart(); });
+  $('seg-level').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; settings.level = b.dataset.v; renderStart(); });
+  $('btn-start').addEventListener('click', startGame);
+  $('btn-again').addEventListener('click', startGame);
+  $('btn-settings').addEventListener('click', () => { $('modal-result').classList.add('hidden'); renderStart(); show('screen-start'); });
+  $('btn-exit').addEventListener('click', () => { clearTimers(); state = null; $('modal-color').classList.add('hidden'); renderStart(); show('screen-start'); });
+  $('deck').addEventListener('click', onDeck);
+  $('btn-uno').addEventListener('click', onUno);
+  $('btn-catch').addEventListener('click', onCatch);
+  $('btn-pass').addEventListener('click', onPass);
+  $('modal-color').addEventListener('click', e => { const b = e.target.closest('button[data-c]'); if (b) onColorPick(b.dataset.c); });
+  document.addEventListener('contextmenu', e => e.preventDefault());
+}
+function boot() {
+  bindUI();
+  if (new URLSearchParams(location.search).get('sim') === '1') { show('screen-sim'); runSimUI(); return; }
+  const saved = loadJSON(SET_KEY, null);
+  if (saved && [1, 2, 3].includes(saved.bots) && LEVELS.includes(saved.level)) settings = saved;
+  renderStart();
+  show('screen-start');
+}
+
+globalThis.WHONO = { DIFFICULTY, SIM, TARGET, createGame, playCard, drawCards, drawForTurn, passTurn, nextIndex, canPlay, legalCards, botPlay, chooseColor, simulateGame, analyzeCombo, mulberry32, getParams, mkCard, topCard };
+if (typeof document !== 'undefined') boot();
+</script>
+</body>
+</html>
